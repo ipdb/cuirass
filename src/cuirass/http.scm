@@ -309,17 +309,20 @@
     (("eval" id)
      (respond-html
       (with-critical-section db-channel (db)
-        (let* ((builds-id-max (db-get-builds-max db id))
-               (builds-id-min (db-get-builds-min db id))
-               (params (request-parameters request))
+        (let* ((params (request-parameters request))
                (border-high-time (assq-ref params 'border-high-time))
                (border-low-time (assq-ref params 'border-low-time))
                (border-high-id (assq-ref params 'border-high-id))
-               (border-low-id (assq-ref params 'border-low-id)))
+               (border-low-id (assq-ref params 'border-low-id))
+               (status (assq-ref params 'status))
+               (builds-id-max (db-get-builds-max db id status))
+               (builds-id-min (db-get-builds-min db id status)))
           (html-page
            "Evaluation"
            (build-eval-table
+            id
             (handle-builds-request db `((evaluation . ,id)
+                                        (status . ,(and=> status string->symbol))
                                         (nr . ,%page-size)
                                         (order . finish-time+build-id)
                                         (border-high-time . ,border-high-time)
@@ -327,7 +330,8 @@
                                         (border-high-id . ,border-high-id)
                                         (border-low-id . ,border-low-id)))
             builds-id-min
-            builds-id-max))))))
+            builds-id-max
+            status))))))
 
     (("static" path ...)
      (respond-static-file path))

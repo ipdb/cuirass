@@ -123,11 +123,14 @@
                               (map (cut substring <> 0 7)
                                    (string-tokenize (assq-ref row #:commits)))
                               ", "))
-                        (td (a (@ (href "#") (class "badge badge-success"))
+                        (td (a (@ (href "/eval/" ,(assq-ref row #:id) "?status=succeeded")
+                                  (class "badge badge-success"))
                                ,(assq-ref row #:succeeded))
-                            (a (@ (href "#") (class "badge badge-danger"))
+                            (a (@ (href "/eval/" ,(assq-ref row #:id) "?status=failed")
+                                  (class "badge badge-danger"))
                                ,(assq-ref row #:failed))
-                            (a (@ (href "#") (class "badge badge-secondary"))
+                            (a (@ (href "/eval/" ,(assq-ref row #:id) "?status=pending")
+                                  (class "badge badge-secondary"))
                                ,(assq-ref row #:scheduled)))))
                  evaluations)))))
     ,(if (null? evaluations)
@@ -145,8 +148,9 @@
                 (format #f "?border-high=~d" page-id-min))
             (format #f "?border-low=~d" (1- id-min)))))))
 
-(define (build-eval-table builds build-min build-max)
-  "Return HTML for the BUILDS table NAME. BUILD-MIN and BUILD-MAX are
+(define (build-eval-table eval-id builds build-min build-max status)
+  "Return HTML for the BUILDS table of EVAL-ID evaluation
+   with given STATUS. BUILD-MIN and BUILD-MAX are
    global minimal and maximal (stoptime, id) pairs."
   (define (table-header)
     `(thead
@@ -189,7 +193,12 @@
     (match build
       ((stoptime id) stoptime)))
 
-  `((table
+  `((p (@ (class "lead"))
+       ,(format #f "~@[~a~] ~:[B~;b~]uilds of evaluation #~a"
+                (and=> status string-capitalize)
+                status
+                eval-id))
+    (table
      (@ (class "table table-sm table-hover table-striped"))
      ,@(if (null? builds)
            `((th (@ (scope "col")) "No elements here."))
@@ -204,19 +213,23 @@
                 (page-build-min (last build-time-ids))
                 (page-build-max (first build-time-ids)))
            (pagination
-            (format #f "?border-high-time=~d&border-high-id=~d"
-                    (build-stoptime build-max)
-                    (1+ (build-id build-max)))
+            (format #f "?border-high-time=~d&border-high-id=~d~@[&status=~a~]"
+              (build-stoptime build-max)
+              (1+ (build-id build-max))
+              status)
             (if (equal? page-build-max build-max)
                 ""
-                (format #f "?border-low-time=~d&border-low-id=~d"
+                (format #f "?border-low-time=~d&border-low-id=~d~@[&status=~a~]"
                         (build-stoptime page-build-max)
-                        (build-id page-build-max)))
+                        (build-id page-build-max)
+                        status))
             (if (equal? page-build-min build-min)
                 ""
-                (format #f "?border-high-time=~d&border-high-id=~d"
+                (format #f "?border-high-time=~d&border-high-id=~d~@[&status=~a~]"
                         (build-stoptime page-build-min)
-                        (build-id page-build-min)))
-            (format #f "?border-low-time=~d&border-low-id=~d"
+                        (build-id page-build-min)
+                        status))
+            (format #f "?border-low-time=~d&border-low-id=~d~@[&status=~a~]"
                     (build-stoptime build-min)
-                    (1- (build-id build-min))))))))
+                    (1- (build-id build-min))
+                    status))))))

@@ -547,7 +547,9 @@ AND (:job IS NULL OR (:job = Derivations.job_name))
 AND (:system IS NULL OR (:system = Derivations.system))
 AND (:evaluation IS NULL OR (:evaluation = Builds.evaluation))
 AND (:status IS NULL OR (:status = 'done' AND Builds.status >= 0)
-                     OR (:status = 'pending' AND Builds.status < 0))
+                     OR (:status = 'pending' AND Builds.status < 0)
+                     OR (:status = 'succeeded' AND Builds.status = 0)
+                     OR (:status = 'failed' AND Builds.status > 0))
 AND (:borderlowtime IS NULL OR :borderlowid IS NULL
  OR ((:borderlowtime, :borderlowid) < (Builds.stoptime, Builds.id)))
 AND (:borderhightime IS NULL OR :borderhighid IS NULL
@@ -680,24 +682,50 @@ SELECT MAX(id) FROM Evaluations
 WHERE specification=" spec)))
     (vector-ref (car rows) 0)))
 
-(define (db-get-builds-min db eval)
+(define (db-get-builds-min db eval status)
   "Return the min build (stoptime, id) pair for
-   the given evaluation EVAL."
+   the given evaluation EVAL and STATUS."
   (let ((rows (sqlite-exec db "
 SELECT stoptime, MIN(id) FROM
 (SELECT id, stoptime FROM Builds
-WHERE evaluation=" eval " AND
-stoptime = (SELECT MIN(stoptime)
-FROM Builds WHERE evaluation=" eval "))")))
+WHERE evaluation=" eval "
+AND stoptime = (SELECT MIN(stoptime)
+  FROM Builds
+  WHERE evaluation=" eval "
+  AND (" status "IS NULL OR (" status "= 'pending'
+                             AND Builds.status < 0)
+                         OR (" status "= 'succeeded'
+                             AND Builds.status = 0)
+                         OR (" status "= 'failed'
+                             AND Builds.status > 0)))
+AND (" status "IS NULL OR (" status "= 'pending'
+                          AND Builds.status < 0)
+                       OR (" status "= 'succeeded'
+                           AND Builds.status = 0)
+                       OR (" status "= 'failed'
+                           AND Builds.status > 0)))")))
     (vector->list (car rows))))
 
-(define (db-get-builds-max db eval)
+(define (db-get-builds-max db eval status)
   "Return the max build (stoptime, id) pair for
-   the given evaluation EVAL."
+   the given evaluation EVAL and STATUS."
   (let ((rows (sqlite-exec db "
 SELECT stoptime, MAX(id) FROM
 (SELECT id, stoptime FROM Builds
 WHERE evaluation=" eval " AND
 stoptime = (SELECT MAX(stoptime)
-FROM Builds WHERE evaluation=" eval "))")))
+  FROM Builds
+  WHERE evaluation=" eval "
+  AND (" status "IS NULL OR (" status "= 'pending'
+                             AND Builds.status < 0)
+                         OR (" status "= 'succeeded'
+                             AND Builds.status = 0)
+                         OR (" status "= 'failed'
+                             AND Builds.status > 0)))
+AND (" status "IS NULL OR (" status "= 'pending'
+                           AND Builds.status < 0)
+                       OR (" status "= 'succeeded'
+                           AND Builds.status = 0)
+                       OR (" status "= 'failed'
+                           AND Builds.status > 0)))")))
     (vector->list (car rows))))
