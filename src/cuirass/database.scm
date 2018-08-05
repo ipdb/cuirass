@@ -55,6 +55,7 @@
             db-get-evaluations-build-summary
             db-get-evaluations-id-min
             db-get-evaluations-id-max
+            db-get-evaluation-specification
             read-sql-file
             read-quoted-string
             sqlite-exec
@@ -729,3 +730,10 @@ AND (" status "IS NULL OR (" status "= 'pending'
                        OR (" status "= 'failed'
                            AND Builds.status > 0)))")))
     (vector->list (car rows))))
+
+(define (db-get-evaluation-specification db eval)
+  "Return specification of evaluation with id EVAL."
+  (let ((rows (sqlite-exec db "
+SELECT specification FROM Evaluations
+WHERE id=" eval)))
+    (vector-ref (car rows) 0)))

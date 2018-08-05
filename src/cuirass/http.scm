@@ -286,7 +286,8 @@
                     "Cuirass"
                     (specifications-table
                      (with-critical-section db-channel (db)
-                       (db-get-specifications db))))))
+                       (db-get-specifications db)))
+                    '())))
 
     (("jobset" name)
      (respond-html
@@ -304,7 +305,10 @@
           (html-page name (evaluation-info-table name
                                                  evaluations
                                                  evaluation-id-min
-                                                 evaluation-id-max))))))
+                                                 evaluation-id-max)
+                          `(((#:name . ,name)
+                             (#:link . ,(string-append "/jobset/" name))
+                             (#:active . #t))))))))
 
     (("eval" id)
      (respond-html
@@ -316,7 +320,8 @@
                (border-low-id (assq-ref params 'border-low-id))
                (status (assq-ref params 'status))
                (builds-id-max (db-get-builds-max db id status))
-               (builds-id-min (db-get-builds-min db id status)))
+               (builds-id-min (db-get-builds-min db id status))
+               (specification (db-get-evaluation-specification db id)))
           (html-page
            "Evaluation"
            (build-eval-table
@@ -331,7 +336,13 @@
                                         (border-low-id . ,border-low-id)))
             builds-id-min
             builds-id-max
-            status))))))
+            status)
+           `(((#:name . ,specification)
+              (#:link . ,(string-append "/jobset/" specification))
+              (#:active . #f))
+             ((#:name . ,(string-append "Evaluation " id))
+              (#:link . ,(string-append "/eval/" id))
+              (#:active . #t))))))))
 
     (("static" path ...)
      (respond-static-file path))
